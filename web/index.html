@@ -57,6 +57,7 @@
     .scrim { position:fixed;inset:0;background:#080a0fcc;display:grid;place-items:center;padding:20px;z-index:5 }
     .dialog { width:min(400px,100%);background:#1b202a;border:1px solid #394252;border-radius:19px;padding:23px;box-shadow:0 24px 80px #0008 }
     .dialog h2 { margin:0 0 5px }.dialog p { color:var(--muted);font-size:14px;margin:0 0 17px }.dialog form { display:grid;gap:10px }
+    .scrim[hidden] { display:none }
     @media(max-width:720px) { .wrap{padding:18px 14px 30px}.grid{grid-template-columns:1fr}.panel{padding:18px}.apps-panel{margin-top:15px}.remote-layout{grid-template-columns:1fr 1fr;gap:8px}.dpad{grid-template-columns:repeat(3,min(17vw,62px));grid-template-rows:repeat(3,min(17vw,62px));gap:6px}.key{border-radius:14px}.actions{gap:7px}.actions .btn{font-size:13px;padding:11px 5px}.status{font-size:0;padding:9px}.status #statusText{font-size:12px} }
     @media(max-width:410px) { .remote-layout{grid-template-columns:1fr}.actions{grid-template-columns:repeat(4,1fr)} }
   </style>
@@ -202,3 +203,4 @@
   </script>
 </body>
 </html>
+
