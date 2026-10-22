@@ -42,7 +42,7 @@ On your phone, open `http://COMPUTER_LOCAL_IP:8765` (find the computer's local I
 ## Controls
 
 - Navigation and playback: Home, arrows, Select, Back, Play/Pause, rewind, fast forward, replay, and Info
-- Type into a Roku search field from the browser remote when the Roku on-screen keyboard is open
+- Search from the browser remote when a Roku on-screen keyboard is open; press Enter on the computer or click Search
 - Open Roku Home and follow the settings guidance at the bottom of the browser remote
 - TV controls when supported: volume, mute, power off, tuner/channel, and HDMI/AV inputs
 - List installed apps and launch one by its app ID

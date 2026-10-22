@@ -102,8 +102,8 @@
           </div>
         </div>
         <div id="remoteMessage" class="remote-note">Connect to a Roku to enable the controls.</div>
-        <p class="hint" style="margin:12px 0 6px">Open a search field on the Roku first, then type here.</p>
-        <div class="type-row"><input id="rokuText" type="text" maxlength="160" autocomplete="off" placeholder="Type into Roku search" aria-label="Text to type on Roku"><button class="btn" id="sendText" type="button">Send text</button><button class="btn" data-key="Enter" type="button">Enter</button></div>
+        <p class="hint" style="margin:12px 0 6px">Open a search field on the Roku, type here, then press Enter or Search.</p>
+        <form class="type-row" id="typeForm"><input id="rokuText" type="text" maxlength="160" autocomplete="off" placeholder="Type into Roku search" aria-label="Text to type on Roku"><button class="btn primary" id="searchText" type="submit">Search</button></form>
       </section>
       <section class="panel">
         <h2>Device</h2><p class="hint">Connected Roku details and quick input controls.</p>
@@ -203,13 +203,23 @@
       try { await api('/api/key', { method:'POST', body:JSON.stringify({key:button.dataset.key}) }); message('remoteMessage', `Sent ${button.getAttribute('aria-label') || button.textContent.trim()}.`); }
       catch (error) { message('remoteMessage', error.message, true); }
     }));
-    $('sendText').addEventListener('click', async () => {
+    $('typeForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
       const text = $('rokuText').value;
       if (!text) { message('remoteMessage', 'Type something first.', true); return; }
+      if (!connected) { message('remoteMessage', 'Connect to a Roku first.', true); return; }
+      let textWasSent = false;
+      $('searchText').disabled = true;
       try {
         const result = await api('/api/type', { method:'POST', body:JSON.stringify({text}) });
-        message('remoteMessage', `Sent ${result.typed} character${result.typed === 1 ? '' : 's'} to the Roku keyboard.`);
-      } catch (error) { message('remoteMessage', error.message, true); }
+        textWasSent = true;
+        $('rokuText').value = '';
+        $('rokuText').focus();
+        await api('/api/key', { method:'POST', body:JSON.stringify({key:'Enter'}) });
+        message('remoteMessage', `Searched for “${text}” on Roku.`);
+      } catch (error) {
+        message('remoteMessage', textWasSent ? `Text was sent, but search could not be submitted: ${error.message}` : error.message, true);
+      } finally { $('searchText').disabled = !connected; }
     });
     $('connect').addEventListener('click', () => connect($('manualIp').value.trim() || $('devices').value));
     $('devices').addEventListener('change', () => { if ($('devices').value) connect($('devices').value); });
