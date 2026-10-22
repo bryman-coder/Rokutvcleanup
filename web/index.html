@@ -50,6 +50,10 @@
     .apps-panel { margin-top:18px }
     .apps-head { display:flex;justify-content:space-between;align-items:center;gap:10px }
     .apps-list { display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin-top:14px }
+    .settings-list { display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:14px }
+    .settings-item { background:#11161f;border:1px solid #303948;border-radius:12px;padding:13px }
+    .settings-item h3 { margin:0 0 5px;font-size:14px }
+    .settings-item p { margin:0;color:var(--muted);font-size:13px }
     .app { display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;background:#11161f;border:1px solid #303948;border-radius:12px;padding:11px 12px;min-width:0 }
     .app span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
     .app:hover { border-color:#8e73eb;background:#1e1a2d }
@@ -118,6 +122,16 @@
       <div class="apps-head"><div><h2>Your apps</h2><p class="hint" style="margin:4px 0 0">Launch an installed app on the Roku.</p></div><button class="btn small" id="loadApps">Refresh apps</button></div>
       <div id="apps" class="apps-list"><div class="message">Connect to a Roku to load its apps.</div></div>
     </section>
+    <section class="panel apps-panel" id="rokuSettings">
+      <h2>Roku settings</h2>
+      <p class="hint">Open the Roku Home screen, then use the remote arrows above to choose Settings.</p>
+      <button class="btn primary" id="openRokuSettings" type="button" disabled>Go to Roku Home</button>
+      <div id="settingsMessage" class="message">Connect to a Roku to open its Home screen.</div>
+      <div class="settings-list">
+        <div class="settings-item"><h3>Allow this app to control Roku</h3><p>On Roku: Settings → System → Advanced system settings → Control by mobile apps → Enabled.</p></div>
+        <div class="settings-item"><h3>TV volume and power</h3><p>Enable HDMI-CEC in the Roku settings and on the RCA TV. The TV menu name and path vary by model.</p></div>
+      </div>
+    </section>
     <footer>This app sends commands only to the Roku you select on your local network. Some buttons depend on your Roku model.</footer>
   </div>
 
@@ -171,6 +185,7 @@
         $('deviceInfo').textContent = data.connected ? `${data.name} · ${data.ip}` : 'No device connected.';
         $('tvControlHelp').textContent = data.connected ? tvControlHelp(data.tv_control || {}) : 'Connect to check TV power and volume support.';
         document.querySelectorAll('[data-key]').forEach(button => button.disabled = !connected);
+        $('openRokuSettings').disabled = !connected;
       } catch (error) { setStatus('Offline'); }
     }
     function tvControlHelp(support) {
@@ -217,6 +232,13 @@
       } catch (error) { box.innerHTML = ''; message('connectMessage', error.message, true); }
     }
     $('loadApps').addEventListener('click', loadApps);
+    $('openRokuSettings').addEventListener('click', async () => {
+      if (!connected) return;
+      try {
+        await api('/api/key', { method:'POST', body:JSON.stringify({key:'Home'}) });
+        message('settingsMessage', 'Roku Home opened. Use the arrows above to select Settings; Roku does not document a direct Settings-launch command.');
+      } catch (error) { message('settingsMessage', error.message, true); }
+    });
     if (token) unlock(token); else $('auth').hidden = false;
   </script>
 </body>
