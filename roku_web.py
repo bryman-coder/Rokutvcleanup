@@ -10,6 +10,7 @@ import secrets
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import xml.etree.ElementTree as ET
 
 from roku_remote import KEYS, RokuRemote, discover_roku_devices
 
@@ -81,7 +82,16 @@ class RokuWebHandler(BaseHTTPRequestHandler):
         try:
             if self.path == "/api/devices":
                 devices = discover_roku_devices()
-                self._json({"devices": [{"ip": ip, "id": device_id} for ip, device_id in devices]})
+                labeled_devices = []
+                for ip, device_id in devices:
+                    name = device_id
+                    try:
+                        info = dict(RokuRemote(ip).device_info())
+                        name = info.get("User Device Name") or info.get("Model Name") or device_id
+                    except (OSError, RuntimeError, ValueError, ET.ParseError):
+                        pass
+                    labeled_devices.append({"ip": ip, "id": device_id, "name": name})
+                self._json({"devices": labeled_devices})
             elif self.path == "/api/status":
                 remote = self.server.remote
                 if remote is None:
@@ -137,6 +147,16 @@ class RokuWebHandler(BaseHTTPRequestHandler):
                 else:
                     remote.press(key)
                     self._json({"sent": key})
+            elif self.path == "/api/type":
+                remote = self.server.remote
+                text = data.get("text")
+                if remote is None:
+                    self._json({"error": "Connect to a Roku first."}, 409)
+                elif not isinstance(text, str) or not text or len(text) > 160 or not text.isprintable():
+                    self._json({"error": "Enter 1–160 printable characters."}, 400)
+                else:
+                    remote.type_text(text)
+                    self._json({"typed": len(text)})
             elif self.path == "/api/launch":
                 remote = self.server.remote
                 app_id = str(data.get("id", ""))

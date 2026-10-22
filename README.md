@@ -42,12 +42,13 @@ On your phone, open `http://COMPUTER_LOCAL_IP:8765` (find the computer's local I
 ## Controls
 
 - Navigation and playback: Home, arrows, Select, Back, Play/Pause, rewind, fast forward, replay, and Info
+- Type into a Roku search field from the browser remote when the Roku on-screen keyboard is open
 - TV controls when supported: volume, mute, power off, tuner/channel, and HDMI/AV inputs
 - List installed apps and launch one by its app ID
 - Display Roku device information and reported TV control support
 - Automatically discover Roku devices on your local network
 
-TV power and volume commands from a streaming stick require HDMI-CEC support and settings enabled on both the Roku and TV. A physical Roku remote may control TV functions using infrared (IR); a computer on the network cannot reproduce IR through the Roku API. If the stick is powered from the TV's USB port, use a wall adapter so it remains powered when the TV is off.
+TV power and volume commands from a streaming stick require HDMI-CEC support and settings enabled on both the Roku and TV. The micro-USB cable supplies power; HDMI carries CEC commands. A physical Roku remote may control TV functions using infrared (IR); a computer on the network cannot reproduce IR through the Roku API. If the stick is powered from the TV's USB port, use a wall adapter so it remains powered when the TV is off. Network discovery can be blocked by Wi-Fi/router isolation; in that case enter the Roku IP directly.
 
 ## Network note
 

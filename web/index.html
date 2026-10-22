@@ -46,6 +46,7 @@
     .actions { display:grid;grid-template-columns:1fr 1fr;gap:9px }
     .actions .btn { padding:12px 8px }
     .remote-note { color:var(--muted);font-size:12px;text-align:center;margin-top:16px }
+    .type-row { display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:16px }
     .apps-panel { margin-top:18px }
     .apps-head { display:flex;justify-content:space-between;align-items:center;gap:10px }
     .apps-list { display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin-top:14px }
@@ -97,6 +98,8 @@
           </div>
         </div>
         <div id="remoteMessage" class="remote-note">Connect to a Roku to enable the controls.</div>
+        <p class="hint" style="margin:12px 0 6px">Open a search field on the Roku first, then type here.</p>
+        <div class="type-row"><input id="rokuText" type="text" maxlength="160" autocomplete="off" placeholder="Type into Roku search" aria-label="Text to type on Roku"><button class="btn" id="sendText" type="button">Send text</button><button class="btn" data-key="Enter" type="button">Enter</button></div>
       </section>
       <section class="panel">
         <h2>Device</h2><p class="hint">Connected Roku details and quick input controls.</p>
@@ -146,8 +149,12 @@
       const select = $('devices'); select.innerHTML = '<option value="">Searching…</option>';
       try {
         const data = await api('/api/devices'); select.innerHTML = '';
-        if (!data.devices.length) select.add(new Option('No Roku found — enter IP below', ''));
-        for (const device of data.devices) select.add(new Option(`${device.id} · ${device.ip}`, device.ip));
+        if (!data.devices.length) {
+          select.add(new Option('No Roku found — enter IP below', ''));
+          message('connectMessage', 'Discovery did not find a Roku. Try Refresh or enter its IP. Some Wi-Fi routers block local device discovery.');
+        }
+        for (const device of data.devices) select.add(new Option(`${device.name || device.id} · ${device.ip}`, device.ip));
+        if (data.devices.length) message('connectMessage', `Found ${data.devices.length} Roku device${data.devices.length === 1 ? '' : 's'}.`);
       } catch (error) { select.innerHTML = '<option value="">Discovery unavailable — enter IP below</option>'; message('connectMessage', error.message, true); }
     }
     async function connect(ip) {
@@ -170,7 +177,10 @@
       const describe = (value) => value === 'true' ? 'enabled' : value === 'false' ? 'not enabled' : 'not reported';
       const power = describe(support.power);
       const volume = describe(support.volume);
-      return `Roku reports TV power ${power} and TV volume ${volume}. For a streaming stick, enable HDMI-CEC on the Roku and RCA TV. If your handheld remote uses infrared (IR), this network app cannot send its signal. If the Roku is powered from the TV’s USB port, connect it to a wall adapter so it stays on when the TV is off.`;
+      const setup = 'Enable HDMI-CEC on the Roku and RCA TV; micro-USB only supplies power. A network app cannot send infrared (IR) signals.';
+      if (support.volume === 'false') return `Roku reports TV volume control is not enabled. ${setup}`;
+      if (support.volume === 'true') return `Roku reports TV volume control is enabled. If the TV volume does not change, check the RCA TV’s CEC setting and whether the handheld remote uses IR. ${setup}`;
+      return `Roku did not report TV volume support. ${setup} Some Roku OS versions do not include this status field.`;
     }
     function message(id, text, isError = false) { const el = $(id); el.textContent = text; el.classList.toggle('error', isError); }
     document.querySelectorAll('[data-key]').forEach(button => button.addEventListener('click', async () => {
@@ -178,6 +188,14 @@
       try { await api('/api/key', { method:'POST', body:JSON.stringify({key:button.dataset.key}) }); message('remoteMessage', `Sent ${button.getAttribute('aria-label') || button.textContent.trim()}.`); }
       catch (error) { message('remoteMessage', error.message, true); }
     }));
+    $('sendText').addEventListener('click', async () => {
+      const text = $('rokuText').value;
+      if (!text) { message('remoteMessage', 'Type something first.', true); return; }
+      try {
+        const result = await api('/api/type', { method:'POST', body:JSON.stringify({text}) });
+        message('remoteMessage', `Sent ${result.typed} character${result.typed === 1 ? '' : 's'} to the Roku keyboard.`);
+      } catch (error) { message('remoteMessage', error.message, true); }
+    });
     $('connect').addEventListener('click', () => connect($('manualIp').value.trim() || $('devices').value));
     $('devices').addEventListener('change', () => { if ($('devices').value) connect($('devices').value); });
     $('refresh').addEventListener('click', refreshDevices);
@@ -203,4 +221,3 @@
   </script>
 </body>
 </html>
-

@@ -12,7 +12,7 @@ import time
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 
 KEYS = {
@@ -23,6 +23,8 @@ KEYS = {
     "right": "Right",
     "select": "Select",
     "back": "Back",
+    "backspace": "Backspace",
+    "enter": "Enter",
     "play/pause": "Play",
     "rewind": "Rev",
     "fast forward": "Fwd",
@@ -71,7 +73,7 @@ def parse_ssdp_response(data: bytes) -> tuple[str, str] | None:
     return ip, match.group(1) if match else "Roku device"
 
 
-def discover_roku_devices(timeout: float = 3.0) -> list[tuple[str, str]]:
+def discover_roku_devices(timeout: float = 5.0) -> list[tuple[str, str]]:
     """Return (IP, device ID) pairs found through Roku's local SSDP discovery."""
     found: dict[str, str] = {}
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) as sock:
@@ -115,6 +117,14 @@ class RokuRemote:
 
     def press(self, key: str) -> None:
         self.request(f"keypress/{key}", method="POST")
+
+    def type_text(self, text: str) -> None:
+        """Type text into a currently focused Roku on-screen keyboard."""
+        if not text or len(text) > 160 or not text.isprintable():
+            raise ValueError("Enter 1–160 printable characters.")
+        for character in text:
+            encoded = quote(character, safe="")
+            self.request(f"keypress/Lit_{encoded}", method="POST")
 
     def device_info(self) -> list[tuple[str, str]]:
         root = ET.fromstring(self.request("query/device-info"))
