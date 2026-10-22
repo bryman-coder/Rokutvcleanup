@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10131a">
+  <title>Roku Remote</title>
+  <style>
+    :root { color-scheme: dark; --bg:#10131a; --panel:#191e28; --line:#2a3240; --ink:#f2f5fa; --muted:#a5afbe; --purple:#8059f6; --purple2:#9b7cff; --green:#52d39a; }
+    * { box-sizing:border-box }
+    body { margin:0; min-height:100vh; background:radial-gradient(ellipse at 75% -10%,#292144 0,transparent 34%),var(--bg); color:var(--ink); font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif }
+    button,input,select { font:inherit }
+    button { color:inherit; cursor:pointer }
+    .wrap { width:min(1040px,100%); margin:auto; padding:28px 22px 44px }
+    header { display:flex; justify-content:space-between; align-items:center; gap:16px; margin:2px 0 25px }
+    .brand { display:flex; align-items:center; gap:12px }
+    .logo { width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#a58bff,#7049ed);display:grid;place-items:center;font-weight:900;font-size:20px;box-shadow:0 8px 24px #8059f64c }
+    h1 { margin:0;font-size:22px;letter-spacing:-.03em }
+    .sub { color:var(--muted);font-size:13px;margin-top:2px }
+    .status { display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;background:#171b24;border:1px solid var(--line);padding:8px 12px;border-radius:999px }
+    .dot { width:8px;height:8px;border-radius:50%;background:#738094 }.dot.on{background:var(--green);box-shadow:0 0 12px #52d39a88}
+    .grid { display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:18px }
+    .panel { background:linear-gradient(145deg,#1c222e,#171b24);border:1px solid var(--line);border-radius:20px;padding:21px;box-shadow:0 16px 45px #0002 }
+    .panel h2 { margin:0 0 4px;font-size:16px;letter-spacing:-.01em }
+    .hint { margin:0 0 18px;color:var(--muted);font-size:13px }
+    .connect-row { display:flex;gap:9px }
+    input,select { min-width:0;width:100%;background:#10141c;color:var(--ink);border:1px solid #343d4c;border-radius:11px;padding:11px 12px;outline:none }
+    input:focus,select:focus { border-color:var(--purple2);box-shadow:0 0 0 3px #8059f62b }
+    .btn { border:1px solid #394252;background:#242b37;border-radius:11px;padding:10px 14px;transition:.15s ease;white-space:nowrap }
+    .btn:hover { transform:translateY(-1px);background:#30394a;border-color:#536077 }
+    .btn.primary { border:0;background:linear-gradient(130deg,#8059f6,#6840df);font-weight:650 }
+    .btn.primary:hover { background:linear-gradient(130deg,#9676ff,#7958ed) }
+    .btn:disabled { opacity:.45;cursor:not-allowed;transform:none }
+    .connect-row + .connect-row { margin-top:9px }
+    .message { min-height:20px;color:var(--muted);font-size:13px;margin-top:10px }
+    .message.error { color:#ff9c9c }
+    .remote-layout { display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center }
+    .dpad { display:grid;grid-template-columns:repeat(3,62px);grid-template-rows:repeat(3,62px);gap:8px;justify-content:center }
+    .key { border:1px solid #394252;background:linear-gradient(145deg,#2a3240,#222936);border-radius:16px;font-size:23px;box-shadow:0 4px 12px #0003;touch-action:manipulation;user-select:none }
+    .key:hover { background:#384357;border-color:#63718a }
+    .key:active,.btn:active { transform:scale(.96) }
+    .key.center { background:linear-gradient(145deg,#8c68ff,#6842dc);border:0;font-size:15px;font-weight:700 }
+    .blank { visibility:hidden }
+    .transport { display:flex;justify-content:center;gap:9px;margin-top:13px }
+    .transport .btn { flex:1;padding:12px 8px;font-size:18px }
+    .actions { display:grid;grid-template-columns:1fr 1fr;gap:9px }
+    .actions .btn { padding:12px 8px }
+    .remote-note { color:var(--muted);font-size:12px;text-align:center;margin-top:16px }
+    .apps-panel { margin-top:18px }
+    .apps-head { display:flex;justify-content:space-between;align-items:center;gap:10px }
+    .apps-list { display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;margin-top:14px }
+    .app { display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;background:#11161f;border:1px solid #303948;border-radius:12px;padding:11px 12px;min-width:0 }
+    .app span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+    .app:hover { border-color:#8e73eb;background:#1e1a2d }
+    .small { padding:7px 10px;font-size:12px }
+    footer { color:#7f8a9a;font-size:12px;margin:17px 3px 0 }
+    .scrim { position:fixed;inset:0;background:#080a0fcc;display:grid;place-items:center;padding:20px;z-index:5 }
+    .dialog { width:min(400px,100%);background:#1b202a;border:1px solid #394252;border-radius:19px;padding:23px;box-shadow:0 24px 80px #0008 }
+    .dialog h2 { margin:0 0 5px }.dialog p { color:var(--muted);font-size:14px;margin:0 0 17px }.dialog form { display:grid;gap:10px }
+    @media(max-width:720px) { .wrap{padding:18px 14px 30px}.grid{grid-template-columns:1fr}.panel{padding:18px}.apps-panel{margin-top:15px}.remote-layout{grid-template-columns:1fr 1fr;gap:8px}.dpad{grid-template-columns:repeat(3,min(17vw,62px));grid-template-rows:repeat(3,min(17vw,62px));gap:6px}.key{border-radius:14px}.actions{gap:7px}.actions .btn{font-size:13px;padding:11px 5px}.status{font-size:0;padding:9px}.status #statusText{font-size:12px} }
+    @media(max-width:410px) { .remote-layout{grid-template-columns:1fr}.actions{grid-template-columns:repeat(4,1fr)} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand"><div class="logo">R</div><div><h1>Roku Remote</h1><div class="sub">Your local streaming control</div></div></div>
+      <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">Not connected</span></div>
+    </header>
+
+    <section class="panel">
+      <h2>Connect to a Roku</h2>
+      <p class="hint">Find a Roku on this network or enter its local IP address.</p>
+      <div class="connect-row"><select id="devices"><option value="">Discovering devices…</option></select><button class="btn" id="refresh">Refresh</button></div>
+      <div class="connect-row"><input id="manualIp" placeholder="192.168.1.50" inputmode="decimal" aria-label="Roku IP address"><button class="btn primary" id="connect">Connect</button></div>
+      <div id="connectMessage" class="message"></div>
+    </section>
+
+    <div class="grid" style="margin-top:18px">
+      <section class="panel">
+        <h2>Remote</h2><p class="hint">Use the directional pad and playback controls.</p>
+        <div class="remote-layout">
+          <div>
+            <div class="dpad">
+              <span class="blank"></span><button class="key" data-key="Up" aria-label="Up">▲</button><span class="blank"></span>
+              <button class="key" data-key="Left" aria-label="Left">◀</button><button class="key center" data-key="Select">OK</button><button class="key" data-key="Right" aria-label="Right">▶</button>
+              <span class="blank"></span><button class="key" data-key="Down" aria-label="Down">▼</button><span class="blank"></span>
+            </div>
+            <div class="transport"><button class="btn" data-key="Rev" aria-label="Rewind">↶</button><button class="btn" data-key="Play" aria-label="Play or pause">▶/Ⅱ</button><button class="btn" data-key="Fwd" aria-label="Fast forward">↷</button></div>
+          </div>
+          <div class="actions">
+            <button class="btn" data-key="Home">⌂ Home</button><button class="btn" data-key="Back">← Back</button>
+            <button class="btn" data-key="VolumeDown">− Volume</button><button class="btn" data-key="VolumeUp">＋ Volume</button>
+            <button class="btn" data-key="VolumeMute">Mute</button><button class="btn" data-key="InstantReplay">Replay</button>
+            <button class="btn" data-key="PowerOff">Power off</button><button class="btn" data-key="Info">Info</button>
+          </div>
+        </div>
+        <div id="remoteMessage" class="remote-note">Connect to a Roku to enable the controls.</div>
+      </section>
+      <section class="panel">
+        <h2>Device</h2><p class="hint">Connected Roku details and quick input controls.</p>
+        <div id="deviceInfo" class="message">No device connected.</div>
+        <div id="tvControlHelp" class="message" role="status">Connect to check TV power and volume support.</div>
+        <div style="height:12px"></div>
+        <div class="actions">
+          <button class="btn" data-key="InputHDMI1">HDMI 1</button><button class="btn" data-key="InputHDMI2">HDMI 2</button>
+          <button class="btn" data-key="InputHDMI3">HDMI 3</button><button class="btn" data-key="InputHDMI4">HDMI 4</button>
+          <button class="btn" data-key="InputTuner">TV tuner</button><button class="btn" data-key="ChannelUp">Channel +</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel apps-panel">
+      <div class="apps-head"><div><h2>Your apps</h2><p class="hint" style="margin:4px 0 0">Launch an installed app on the Roku.</p></div><button class="btn small" id="loadApps">Refresh apps</button></div>
+      <div id="apps" class="apps-list"><div class="message">Connect to a Roku to load its apps.</div></div>
+    </section>
+    <footer>This app sends commands only to the Roku you select on your local network. Some buttons depend on your Roku model.</footer>
+  </div>
+
+  <div id="auth" class="scrim" hidden>
+    <div class="dialog"><h2>Unlock your remote</h2><p>Enter the temporary access code printed in the Terminal window running Roku Remote.</p>
+      <form id="authForm"><input id="accessCode" type="password" autocomplete="current-password" placeholder="Access code" required><button class="btn primary">Continue</button><div id="authMessage" class="message error"></div></form>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let token = sessionStorage.getItem('rokuAccessCode') || '';
+    let connected = false;
+    function setStatus(text, online = false) { $('statusText').textContent = text; $('statusDot').classList.toggle('on', online); }
+    async function api(path, options = {}) {
+      const response = await fetch(path, { ...options, headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}`, ...(options.headers || {}) } });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 401) { token = ''; sessionStorage.removeItem('rokuAccessCode'); $('auth').hidden = false; throw new Error('Enter the current access code.'); }
+      if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+      return data;
+    }
+    async function unlock(value) {
+      token = value.trim(); sessionStorage.setItem('rokuAccessCode', token);
+      try { await api('/api/status'); $('auth').hidden = true; $('authMessage').textContent = ''; await refreshDevices(); await refreshStatus(); }
+      catch (error) { $('authMessage').textContent = error.message; }
+    }
+    $('authForm').addEventListener('submit', (event) => { event.preventDefault(); unlock($('accessCode').value); });
+    async function refreshDevices() {
+      const select = $('devices'); select.innerHTML = '<option value="">Searching…</option>';
+      try {
+        const data = await api('/api/devices'); select.innerHTML = '';
+        if (!data.devices.length) select.add(new Option('No Roku found — enter IP below', ''));
+        for (const device of data.devices) select.add(new Option(`${device.id} · ${device.ip}`, device.ip));
+      } catch (error) { select.innerHTML = '<option value="">Discovery unavailable — enter IP below</option>'; message('connectMessage', error.message, true); }
+    }
+    async function connect(ip) {
+      if (!ip) { message('connectMessage', 'Choose a Roku or enter its IP address.', true); return; }
+      message('connectMessage', 'Connecting…');
+      try { const data = await api('/api/connect', { method:'POST', body:JSON.stringify({ip}) }); $('manualIp').value = data.ip; message('connectMessage', `Connected to ${data.name} at ${data.ip}.`); await refreshStatus(); await loadApps(); }
+      catch (error) { message('connectMessage', error.message, true); }
+    }
+    async function refreshStatus() {
+      try {
+        const data = await api('/api/status'); connected = data.connected;
+        setStatus(data.connected ? data.name : 'Not connected', data.connected);
+        $('remoteMessage').textContent = data.connected ? `Connected at ${data.ip}` : 'Connect to a Roku to enable the controls.';
+        $('deviceInfo').textContent = data.connected ? `${data.name} · ${data.ip}` : 'No device connected.';
+        $('tvControlHelp').textContent = data.connected ? tvControlHelp(data.tv_control || {}) : 'Connect to check TV power and volume support.';
+        document.querySelectorAll('[data-key]').forEach(button => button.disabled = !connected);
+      } catch (error) { setStatus('Offline'); }
+    }
+    function tvControlHelp(support) {
+      const describe = (value) => value === 'true' ? 'enabled' : value === 'false' ? 'not enabled' : 'not reported';
+      const power = describe(support.power);
+      const volume = describe(support.volume);
+      return `Roku reports TV power ${power} and TV volume ${volume}. For a streaming stick, enable HDMI-CEC on the Roku and RCA TV. If your handheld remote uses infrared (IR), this network app cannot send its signal. If the Roku is powered from the TV’s USB port, connect it to a wall adapter so it stays on when the TV is off.`;
+    }
+    function message(id, text, isError = false) { const el = $(id); el.textContent = text; el.classList.toggle('error', isError); }
+    document.querySelectorAll('[data-key]').forEach(button => button.addEventListener('click', async () => {
+      if (!connected) return;
+      try { await api('/api/key', { method:'POST', body:JSON.stringify({key:button.dataset.key}) }); message('remoteMessage', `Sent ${button.getAttribute('aria-label') || button.textContent.trim()}.`); }
+      catch (error) { message('remoteMessage', error.message, true); }
+    }));
+    $('connect').addEventListener('click', () => connect($('manualIp').value.trim() || $('devices').value));
+    $('devices').addEventListener('change', () => { if ($('devices').value) connect($('devices').value); });
+    $('refresh').addEventListener('click', refreshDevices);
+    async function loadApps() {
+      const box = $('apps'); box.innerHTML = '<div class="message">Loading apps…</div>';
+      try {
+        const data = await api('/api/apps'); box.innerHTML = '';
+        if (!data.apps.length) { box.innerHTML = '<div class="message">No installed apps were returned.</div>'; return; }
+        for (const app of data.apps) {
+          const button = document.createElement('button'); button.className = 'app';
+          const title = document.createElement('span'); title.textContent = app.name || `App ${app.id}`;
+          const arrow = document.createElement('b'); arrow.textContent = '↗'; button.append(title, arrow);
+          button.addEventListener('click', async () => {
+            try { await api('/api/launch', { method:'POST', body:JSON.stringify({id:app.id}) }); message('remoteMessage', `Launching ${app.name || app.id}.`); }
+            catch (error) { message('remoteMessage', error.message, true); }
+          });
+          box.append(button);
+        }
+      } catch (error) { box.innerHTML = ''; message('connectMessage', error.message, true); }
+    }
+    $('loadApps').addEventListener('click', loadApps);
+    if (token) unlock(token); else $('auth').hidden = false;
+  </script>
+</body>
+</html>
