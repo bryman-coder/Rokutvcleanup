@@ -103,12 +103,18 @@
         </div>
         <div id="remoteMessage" class="remote-note">Connect to a Roku to enable the controls.</div>
         <p class="hint" style="margin:12px 0 6px">Open a search field on the Roku, type here, then press Enter or Search.</p>
-        <form class="type-row" id="typeForm"><input id="rokuText" type="text" maxlength="160" autocomplete="off" placeholder="Type into Roku search" aria-label="Text to type on Roku"><button class="btn primary" id="searchText" type="submit">Search</button></form>
+        <form class="type-row" id="typeForm"><input id="rokuText" type="text" maxlength="160" autocomplete="off" placeholder="Type into Roku search" aria-label="Text to type on Roku"><button class="btn" id="clearSearch" type="button">Clear</button><button class="btn primary" id="searchText" type="submit">Search</button></form>
       </section>
       <section class="panel">
         <h2>Device</h2><p class="hint">Connected Roku details and quick input controls.</p>
         <div id="deviceInfo" class="message">No device connected.</div>
         <div id="tvControlHelp" class="message" role="status">Connect to check TV power and volume support.</div>
+        <div style="height:12px"></div>
+        <div class="actions">
+          <button class="btn" id="refreshDiagnostics" type="button" disabled>Refresh TV diagnostics</button>
+          <button class="btn" id="testVolumeUp" type="button" disabled>Test Volume +</button>
+        </div>
+        <div id="tvDiagnostics" class="message" role="status">Diagnostics appear after connecting to a Roku.</div>
         <div style="height:12px"></div>
         <div class="actions">
           <button class="btn" data-key="InputHDMI1">HDMI 1</button><button class="btn" data-key="InputHDMI2">HDMI 2</button>
@@ -182,11 +188,21 @@
         const data = await api('/api/status'); connected = data.connected;
         setStatus(data.connected ? data.name : 'Not connected', data.connected);
         $('remoteMessage').textContent = data.connected ? `Connected at ${data.ip}` : 'Connect to a Roku to enable the controls.';
-        $('deviceInfo').textContent = data.connected ? `${data.name} · ${data.ip}` : 'No device connected.';
+        const info = data.info || {};
+        const model = info['Model Name'] || data.name;
+        const version = info['Software Version'] || info['Software Build'] || 'not reported';
+        $('deviceInfo').textContent = data.connected ? `${model} · ${data.ip} · Roku software ${version}` : 'No device connected.';
         $('tvControlHelp').textContent = data.connected ? tvControlHelp(data.tv_control || {}) : 'Connect to check TV power and volume support.';
+        $('tvDiagnostics').textContent = data.connected ? formatDiagnostics(data.tv_control || {}) : 'Diagnostics appear after connecting to a Roku.';
         document.querySelectorAll('[data-key]').forEach(button => button.disabled = !connected);
         $('openRokuSettings').disabled = !connected;
+        $('refreshDiagnostics').disabled = !connected;
+        $('testVolumeUp').disabled = !connected;
       } catch (error) { setStatus('Offline'); }
+    }
+    function formatDiagnostics(support) {
+      const status = (value) => value === 'true' ? 'reported supported' : value === 'false' ? 'reported unsupported' : 'unknown (not reported by this Roku)';
+      return `TV power: ${status(support.power)}. TV volume: ${status(support.volume)}. Use “Test Volume +” once and check whether the RCA TV’s on-screen volume changes.`;
     }
     function tvControlHelp(support) {
       const describe = (value) => value === 'true' ? 'enabled' : value === 'false' ? 'not enabled' : 'not reported';
@@ -221,6 +237,24 @@
         message('remoteMessage', textWasSent ? `Text was sent, but search could not be submitted: ${error.message}` : error.message, true);
       } finally { $('searchText').disabled = !connected; }
     });
+    $('clearSearch').addEventListener('click', () => {
+      $('rokuText').value = '';
+      $('rokuText').focus();
+      message('remoteMessage', 'Search text cleared.');
+    });
+    const arrowKeys = { ArrowUp:'Up', ArrowDown:'Down', ArrowLeft:'Left', ArrowRight:'Right' };
+    document.addEventListener('keydown', async (event) => {
+      const key = arrowKeys[event.key];
+      if (!key || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (!connected) return;
+      event.preventDefault();
+      try {
+        await api('/api/key', { method:'POST', body:JSON.stringify({key}) });
+        message('remoteMessage', `Sent ${key}.`);
+      } catch (error) { message('remoteMessage', error.message, true); }
+    });
     $('connect').addEventListener('click', () => connect($('manualIp').value.trim() || $('devices').value));
     $('devices').addEventListener('change', () => { if ($('devices').value) connect($('devices').value); });
     $('refresh').addEventListener('click', refreshDevices);
@@ -248,6 +282,20 @@
         await api('/api/key', { method:'POST', body:JSON.stringify({key:'Home'}) });
         message('settingsMessage', 'Roku Home opened. Use the arrows above to select Settings; Roku does not document a direct Settings-launch command.');
       } catch (error) { message('settingsMessage', error.message, true); }
+    });
+    $('refreshDiagnostics').addEventListener('click', async () => {
+      $('refreshDiagnostics').disabled = true;
+      try { await refreshStatus(); message('tvDiagnostics', `Diagnostics refreshed. ${$('tvDiagnostics').textContent}`); }
+      catch (error) { message('tvDiagnostics', error.message, true); }
+      finally { $('refreshDiagnostics').disabled = !connected; }
+    });
+    $('testVolumeUp').addEventListener('click', async () => {
+      $('testVolumeUp').disabled = true;
+      try {
+        await api('/api/key', { method:'POST', body:JSON.stringify({key:'VolumeUp'}) });
+        message('tvDiagnostics', 'Roku accepted the Volume + command. Check the RCA TV now; the HTTP response cannot confirm that its volume changed.');
+      } catch (error) { message('tvDiagnostics', `Volume test failed: ${error.message}`, true); }
+      finally { $('testVolumeUp').disabled = !connected; }
     });
     if (token) unlock(token); else $('auth').hidden = false;
   </script>

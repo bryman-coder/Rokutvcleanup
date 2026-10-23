@@ -41,15 +41,16 @@ On your phone, open `http://COMPUTER_LOCAL_IP:8765` (find the computer's local I
 
 ## Controls
 
-- Navigation and playback: Home, arrows, Select, Back, Play/Pause, rewind, fast forward, replay, and Info
-- Search from the browser remote when a Roku on-screen keyboard is open; press Enter on the computer or click Search
+- Navigation and playback: Home, on-screen arrows or computer arrow keys, Select, Back, Play/Pause, rewind, fast forward, replay, and Info. Computer arrow keys control Roku when focus is outside a text field.
+- Search from the browser remote when a Roku on-screen keyboard is open; use Clear to empty the computer-side text box, then press Enter or click Search
 - Open Roku Home and follow the settings guidance at the bottom of the browser remote
 - TV controls when supported: volume, mute, power off, tuner/channel, and HDMI/AV inputs
 - List installed apps and launch one by its app ID
 - Display Roku device information and reported TV control support
+- Refresh TV-control diagnostics and send a one-step Volume + test command
 - Automatically discover Roku devices on your local network
 
-TV power and volume commands from a streaming stick require HDMI-CEC support and settings enabled on both the Roku and TV. The micro-USB cable supplies power; HDMI carries CEC commands. A physical Roku remote may control TV functions using infrared (IR); a computer on the network cannot reproduce IR through the Roku API. If the stick is powered from the TV's USB port, use a wall adapter so it remains powered when the TV is off. Network discovery can be blocked by Wi-Fi/router isolation; in that case enter the Roku IP directly.
+TV power and volume commands from a streaming stick require HDMI-CEC support and settings enabled on both the Roku and TV. The micro-USB cable supplies power; HDMI carries CEC commands. The Volume + diagnostic confirms that Roku accepted the command, but check the TV's on-screen volume to confirm the TV acted on it. A physical Roku remote may control TV functions using infrared (IR); a computer on the network cannot reproduce IR through the Roku API. If the stick is powered from the TV's USB port, use a wall adapter so it remains powered when the TV is off. Network discovery can be blocked by Wi-Fi/router isolation; in that case enter the Roku IP directly.
 
 ## Network note
 
