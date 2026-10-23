@@ -54,6 +54,11 @@
     .settings-item { background:#11161f;border:1px solid #303948;border-radius:12px;padding:13px }
     .settings-item h3 { margin:0 0 5px;font-size:14px }
     .settings-item p { margin:0;color:var(--muted);font-size:13px }
+    .ad-form { display:grid;gap:10px;margin-top:14px }
+    textarea { min-height:155px;resize:vertical;background:#10141c;color:var(--ink);border:1px solid #343d4c;border-radius:11px;padding:11px 12px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace }
+    textarea:focus { border-color:var(--purple2);outline:none;box-shadow:0 0 0 3px #8059f62b }
+    .ad-actions { display:flex;flex-wrap:wrap;gap:8px }
+    a { color:#b9a6ff }
     .app { display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;background:#11161f;border:1px solid #303948;border-radius:12px;padding:11px 12px;min-width:0 }
     .app span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
     .app:hover { border-color:#8e73eb;background:#1e1a2d }
@@ -138,6 +143,23 @@
         <div class="settings-item"><h3>TV volume and power</h3><p>Enable HDMI-CEC in the Roku settings and on the RCA TV. The TV menu name and path vary by model.</p></div>
       </div>
     </section>
+    <section class="panel apps-panel" id="adBlocking">
+      <h2>Debloat &amp; ad filtering</h2>
+      <p class="hint">Trim unused channels from Roku and build a DNS sinkhole list for your home network.</p>
+      <div class="settings-list">
+        <div class="settings-item"><h3>Reduce Roku Home screen ads</h3><p>Roku’s built-in ad preferences apply to certain Home screen and screensaver banner ads, not video ads or ads inside partner apps. <a href="https://support.roku.com/en-us/article/manage-ad-preferences" target="_blank" rel="noopener noreferrer">Roku ad preference instructions</a></p></div>
+        <div class="settings-item"><h3>Remove channels you don’t use</h3><p>On the Roku, highlight a channel on Home, press * on the physical remote, choose Remove app, then confirm. If you have an active subscription, cancel it first. This remote currently lists and launches channels but does not automate removal.</p></div>
+      </div>
+      <form class="ad-form" id="adBlockForm">
+        <label for="sinkholeIp">Sinkhole IPv4 address</label>
+        <input id="sinkholeIp" value="0.0.0.0" inputmode="decimal" aria-describedby="sinkholeHelp">
+        <div id="sinkholeHelp" class="hint" style="margin:0">This address is written into the hosts-file export. A DNS blocker or router must use the list, and the Roku must send DNS requests through that blocker before this has any effect.</div>
+        <label for="adDomains">Domains to block, one hostname per line</label>
+        <textarea id="adDomains" placeholder="Add exact domains from your DNS filter logs. No domains are preloaded, to avoid breaking Roku services or streaming apps."></textarea>
+        <div class="ad-actions"><button class="btn primary" id="saveAdBlock" type="submit">Save list</button><button class="btn" id="downloadDomainList" type="button">Download domains list</button><button class="btn" id="downloadHostsFile" type="button">Download sinkhole hosts file</button></div>
+      </form>
+      <div id="adBlockMessage" class="message" role="status">Connect and unlock the remote to manage this list.</div>
+    </section>
     <footer>This app sends commands only to the Roku you select on your local network. Some buttons depend on your Roku model.</footer>
   </div>
 
@@ -161,7 +183,7 @@
     }
     async function unlock(value) {
       token = value.trim(); sessionStorage.setItem('rokuAccessCode', token);
-      try { await api('/api/status'); $('auth').hidden = true; $('authMessage').textContent = ''; await refreshDevices(); await refreshStatus(); }
+      try { await api('/api/status'); $('auth').hidden = true; $('authMessage').textContent = ''; await refreshDevices(); await refreshStatus(); await loadAdBlocking(); }
       catch (error) { $('authMessage').textContent = error.message; }
     }
     $('authForm').addEventListener('submit', (event) => { event.preventDefault(); unlock($('accessCode').value); });
@@ -297,6 +319,48 @@
       } catch (error) { message('tvDiagnostics', `Volume test failed: ${error.message}`, true); }
       finally { $('testVolumeUp').disabled = !connected; }
     });
+    async function loadAdBlocking() {
+      try {
+        const data = await api('/api/ad-blocking');
+        $('sinkholeIp').value = data.sinkhole_ip;
+        $('adDomains').value = data.domains.join('\n');
+        message('adBlockMessage', `Loaded ${data.domains.length} blocked domain${data.domains.length === 1 ? '' : 's'}. This list is saved on this computer.`);
+      } catch (error) { message('adBlockMessage', error.message, true); }
+    }
+    async function saveAdBlocking() {
+      const domains = $('adDomains').value.split(/\r?\n/).map(domain => domain.trim()).filter(Boolean);
+      const data = await api('/api/ad-blocking', { method:'POST', body:JSON.stringify({sinkhole_ip:$('sinkholeIp').value.trim(), domains}) });
+      $('sinkholeIp').value = data.sinkhole_ip;
+      $('adDomains').value = data.domains.join('\n');
+      return data;
+    }
+    $('adBlockForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      $('saveAdBlock').disabled = true;
+      try {
+        const data = await saveAdBlocking();
+        message('adBlockMessage', `Saved ${data.domains.length} blocked domain${data.domains.length === 1 ? '' : 's'} on this computer.`);
+      } catch (error) { message('adBlockMessage', error.message, true); }
+      finally { $('saveAdBlock').disabled = false; }
+    });
+    async function downloadAdBlock(format) {
+      try {
+        const data = await saveAdBlocking();
+        const lines = format === 'hosts'
+          ? data.domains.map(domain => `${data.sinkhole_ip} ${domain}`)
+          : data.domains;
+        const contents = `# Roku Remote DNS blocklist (${format})\n${lines.join('\n')}${lines.length ? '\n' : ''}`;
+        const url = URL.createObjectURL(new Blob([contents], {type:'text/plain;charset=utf-8'}));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = format === 'hosts' ? 'roku-sinkhole-hosts.txt' : 'roku-blocked-domains.txt';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        message('adBlockMessage', `Downloaded ${lines.length} entries. Import the list into your DNS blocker; this file does not change Roku or router DNS settings.`);
+      } catch (error) { message('adBlockMessage', error.message, true); }
+    }
+    $('downloadDomainList').addEventListener('click', () => downloadAdBlock('domains'));
+    $('downloadHostsFile').addEventListener('click', () => downloadAdBlock('hosts'));
     if (token) unlock(token); else $('auth').hidden = false;
   </script>
 </body>

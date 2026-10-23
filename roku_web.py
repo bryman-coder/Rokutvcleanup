@@ -12,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
+from roku_ads import load_config, save_config
 from roku_remote import KEYS, RokuRemote, discover_roku_devices
 
 WEB_DIR = Path(__file__).parent / "web"
@@ -113,6 +114,8 @@ class RokuWebHandler(BaseHTTPRequestHandler):
                     self._json({"error": "Connect to a Roku first."}, 409)
                 else:
                     self._json({"apps": [{"id": app_id, "name": name} for app_id, name in remote.apps()]})
+            elif self.path == "/api/ad-blocking":
+                self._json(load_config())
             else:
                 self.send_error(404)
         except (OSError, RuntimeError, ValueError) as exc:
@@ -165,6 +168,13 @@ class RokuWebHandler(BaseHTTPRequestHandler):
                 else:
                     remote.launch(app_id)
                     self._json({"launched": app_id})
+            elif self.path == "/api/ad-blocking":
+                try:
+                    config = save_config(data.get("sinkhole_ip"), data.get("domains"))
+                except ValueError as exc:
+                    self._json({"error": str(exc)}, 400)
+                else:
+                    self._json({"saved": True, **config})
             else:
                 self.send_error(404)
         except (OSError, RuntimeError, ValueError) as exc:

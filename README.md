@@ -48,9 +48,16 @@ On your phone, open `http://COMPUTER_LOCAL_IP:8765` (find the computer's local I
 - List installed apps and launch one by its app ID
 - Display Roku device information and reported TV control support
 - Refresh TV-control diagnostics and send a one-step Volume + test command
+- Manage a local Roku ad-block domain list and download it as domains-only or sinkhole hosts format
 - Automatically discover Roku devices on your local network
 
 TV power and volume commands from a streaming stick require HDMI-CEC support and settings enabled on both the Roku and TV. The micro-USB cable supplies power; HDMI carries CEC commands. The Volume + diagnostic confirms that Roku accepted the command, but check the TV's on-screen volume to confirm the TV acted on it. A physical Roku remote may control TV functions using infrared (IR); a computer on the network cannot reproduce IR through the Roku API. If the stick is powered from the TV's USB port, use a wall adapter so it remains powered when the TV is off. Network discovery can be blocked by Wi-Fi/router isolation; in that case enter the Roku IP directly.
+
+## Roku ad filtering and cleanup
+
+The browser remote's **Debloat & ad filtering** panel stores a domain list in `~/.roku-remote/ad-blocking.json` and can export domains-only or hosts-format files. Add domains observed in your DNS filter's logs; no domains are preloaded because broad or inaccurate blocks can interfere with Roku services and streaming apps. The exported file does not run a DNS server or change the Roku/router network settings. Import it into a DNS filtering service such as Pi-hole or AdGuard Home, configure the home network to use that DNS service, and verify the Roku is using it.
+
+Roku's own ad-preference controls only affect some Home screen and screensaver banner ads; they do not remove video ads or ads inside partner apps. To remove an unused channel, highlight it on the Roku Home screen, press *****, choose **Remove app**, and confirm. The remote does not automate channel removal.
 
 ## Network note
 
